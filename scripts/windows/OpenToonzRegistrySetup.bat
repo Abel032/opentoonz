@@ -2,6 +2,8 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+REM 这是一个批处理脚本，放在和"OpenToonz stuff"文件夹同一个位置 / This Batch should be placed in the same folder with "OpenToonz stuff" folder
+
 REM 获取当前目录 / Get the current directory
 set CURRENT_PATH=%cd%
 
