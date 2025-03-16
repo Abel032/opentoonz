@@ -3055,10 +3055,11 @@ void TVectorImage::Imp::addRegion(TRegion *region) {
 
 //-----------------------------------------------------------------------------
 
-void TVectorImage::replaceStroke(int index, TStroke *newStroke) {
+void TVectorImage::replaceStroke(int index, TStroke *newStroke, bool shouldDelete) {
   if ((int)m_imp->m_strokes.size() <= index) return;
 
-  delete m_imp->m_strokes[index]->m_s;
+  if(shouldDelete)
+      delete m_imp->m_strokes[index]->m_s;
   m_imp->m_strokes[index]->m_s = newStroke;
 
   Intersection *p1;

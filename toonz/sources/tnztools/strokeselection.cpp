@@ -1,5 +1,4 @@
 
-
 #include "tools/strokeselection.h"
 
 // TnzTools includes
@@ -375,6 +374,23 @@ public:
   }
 };
 
+// With palette Order
+void sortStylesIds(QVector<int> &Styles, TPaletteP palette) {
+  if (!palette) return;
+  QVector<int> tmpStyles = Styles;
+  Styles.clear();
+  for (int p = 0; p < palette->getPageCount(); p++) {
+    TPalette::Page *page = palette->getPage(p);
+    for (int s = 0; s < page->getStyleCount(); s++) {
+      int tmpId = page->getStyleId(s);
+      if (tmpStyles.indexOf(tmpId, 0) != -1) {
+        Styles.append(tmpId);
+      }
+      if (tmpStyles.count() == Styles.count()) return;
+    }
+  }
+}
+
 }  // namespace
 
 //=============================================================================
@@ -484,8 +500,6 @@ void StrokeSelection::removeEndpoints() {
 //-----------------------------------------------------------------------------
 
 void StrokeSelection::sortWithPaletteOrder() {
-    //do nothing
-
   if (!m_vi) return;
   if (m_indexes.empty()) return;
 
@@ -494,11 +508,42 @@ void StrokeSelection::sortWithPaletteOrder() {
         QObject::tr("The selection cannot be updated. It is not editable."));
     return;
   }
-
+  TPalette *palette = m_vi->getPalette();
+  TTool *tool       = TTool::getApplication()->getCurrentTool()->getTool();
   
+  // StyleID,Stroke
+  QVector<QPair<int, TStroke *>> strokePairs;
+  QSet<int> styles;
+  for (auto index : m_indexes) {
+    TStroke *stroke = m_vi->getStroke(index);
+    if (stroke) {
+      int styleID = stroke->getStyle();
+      strokePairs.append(qMakePair(styleID, stroke));
+      styles.insert(styleID);
+    }
+  }
+  assert(strokePairs.size() == m_indexes.size());
+  QVector<int> styleOrder = QList<int>::fromSet(styles).toVector();
+  sortStylesIds(styleOrder, palette);
 
-  TTool *tool = TTool::getApplication()->getCurrentTool()->getTool();
+  QHash<int, int> styleIndexMap;
+  for (int i = 0; i < styleOrder.size(); ++i) {
+    styleIndexMap[styleOrder[i]] = i;
+  }
 
+  std::sort(
+      strokePairs.begin(), strokePairs.end(),
+      [&](const QPair<int, TStroke *> &a, const QPair<int, TStroke *> &b) {
+        return styleIndexMap[a.first] > styleIndexMap[b.first];
+      });
+
+  auto strokeIter = strokePairs.begin();
+  for (auto index : m_indexes) {
+    m_vi->replaceStroke(index, strokeIter->second,false);
+    strokeIter++;
+  }
+
+  selectNone();
   m_updateSelectionBBox = true;
   tool->notifyImageChanged();
   m_updateSelectionBBox = false;
