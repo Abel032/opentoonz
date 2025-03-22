@@ -354,6 +354,69 @@ public:
   int getSize() const override { return sizeof(*this); }
 };
 
+class OrderStrokesUndo : public TUndo {
+protected:
+  TXshSimpleLevelP m_level;
+  TFrameId m_frameId;
+  // Before, After
+  QVector<QPair<int, int>> m_indexPair;
+  std::set<int> m_indexes;
+
+public:
+  OrderStrokesUndo(TXshSimpleLevelP level, TFrameId frameId,
+                   QVector<QPair<int, int>> indexPair)
+      : m_level(level), m_frameId(frameId), m_indexPair(indexPair) {}
+
+  ~OrderStrokesUndo() {}
+
+  QString getHistoryString() {
+    return QObject::tr(
+               "Sort Vector Strokes With Palette Order Level : %1 Frame : %2")
+        .arg(QString::fromStdWString(m_level->getName()))
+        .arg(m_frameId.getNumber());
+  }
+
+  void undo() const override {
+    TVectorImageP vi = m_level->getFrame(m_frameId, true);
+    if (!vi) return;
+
+    int strokeCount = vi->getStrokeCount();
+    QVector<TStroke *> strokes;
+
+    for (const QPair<int, int> &pair : m_indexPair) {
+      if (pair.second >= strokeCount) return;
+      strokes.append(vi->getStroke(pair.second));
+    }
+
+    for (int i = 0; i < m_indexPair.size(); ++i) {
+      vi->replaceStroke(m_indexPair[i].first, strokes[i], false);
+    }
+    vi->validateRegions(false);
+    TTool::getApplication()->getCurrentTool()->getTool()->notifyImageChanged();
+  }
+
+  void redo() const override {
+    TVectorImageP vi = m_level->getFrame(m_frameId, true);
+    if (!vi) return;
+
+    int strokeCount = vi->getStrokeCount();
+    QVector<TStroke *> strokes;
+
+    for (const QPair<int, int> &pair : m_indexPair) {
+      if (pair.first >= strokeCount) return;
+      strokes.append(vi->getStroke(pair.first));
+    }
+
+    for (int i = 0; i < m_indexPair.size(); ++i) {
+      vi->replaceStroke(m_indexPair[i].second, strokes[i], false);
+    }
+    vi->validateRegions(false);
+    TTool::getApplication()->getCurrentTool()->getTool()->notifyImageChanged();
+  }
+
+  int getSize() const override { return sizeof(*this); }
+};
+
 //=============================================================================
 // CutStrokesUndo
 //-----------------------------------------------------------------------------
@@ -511,19 +574,19 @@ void StrokeSelection::sortWithPaletteOrder() {
   TPalette *palette = m_vi->getPalette();
   TTool *tool       = TTool::getApplication()->getCurrentTool()->getTool();
   
-  // StyleID,Stroke
+  // Index,Stroke
   QVector<QPair<int, TStroke *>> strokePairs;
   QSet<int> styles;
   for (auto index : m_indexes) {
     TStroke *stroke = m_vi->getStroke(index);
     if (stroke) {
+      strokePairs.append(qMakePair(index, stroke));
       int styleID = stroke->getStyle();
-      strokePairs.append(qMakePair(styleID, stroke));
       styles.insert(styleID);
     }
   }
   assert(strokePairs.size() == m_indexes.size());
-  QVector<int> styleOrder = QList<int>::fromSet(styles).toVector();
+  QVector<int> styleOrder = QVector<int>(styles.begin(), styles.end());
   sortStylesIds(styleOrder, palette);
 
   QHash<int, int> styleIndexMap;
@@ -534,17 +597,25 @@ void StrokeSelection::sortWithPaletteOrder() {
   std::sort(
       strokePairs.begin(), strokePairs.end(),
       [&](const QPair<int, TStroke *> &a, const QPair<int, TStroke *> &b) {
-        return styleIndexMap[a.first] > styleIndexMap[b.first];
+        return styleIndexMap[a.second->getStyle()] >
+               styleIndexMap[b.second->getStyle()];
       });
-
+  
+  QVector<QPair<int, int>> indexPair;
   auto strokeIter = strokePairs.begin();
   for (auto index : m_indexes) {
+    indexPair.append(qMakePair(strokeIter->first, index));
     m_vi->replaceStroke(index, strokeIter->second,false);
     strokeIter++;
   }
-
+  
+  TXshSimpleLevel *level =
+          TTool::getApplication()->getCurrentLevel()->getSimpleLevel();
+  TUndoManager::manager()->add(
+      new OrderStrokesUndo(level, tool->getCurrentFid(), indexPair));
   selectNone();
   m_updateSelectionBBox = true;
+  m_vi->validateRegions(false);
   tool->notifyImageChanged();
   m_updateSelectionBBox = false;
 }
