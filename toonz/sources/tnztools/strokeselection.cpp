@@ -564,6 +564,7 @@ void StrokeSelection::removeEndpoints() {
 
 void StrokeSelection::sortWithPaletteOrder() {
   if (!m_vi) return;
+  if (m_vi->getRegionCount()) return;
   if (m_indexes.empty()) return;
 
   if (!isEditable()) {
@@ -817,7 +818,8 @@ void StrokeSelection::enableCommands() {
   enableCommand(m_groupCommand.get(), MI_ExitGroup, &TGroupCommand::exitGroup);
 
   enableCommand(this, MI_RemoveEndpoints, &StrokeSelection::removeEndpoints);
-  enableCommand(this, MI_SortWithPaletteOrder, &StrokeSelection::sortWithPaletteOrder);
+  if (!m_vi->getRegionCount())
+      enableCommand(this, MI_SortWithPaletteOrder, &StrokeSelection::sortWithPaletteOrder);
   enableCommand(this, MI_SelectAll, &StrokeSelection::selectAll);
 }
 
