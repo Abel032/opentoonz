@@ -940,23 +940,26 @@ void doFill(const TImageP &img, const TPointD &pos, FillParameters &params,
       return;
     }
 
-    // !autoPaintLines will temporary disable autopaint line feature
-    if (plt && hasAutoInks(plt) && autopaintLines) params.m_palette = plt;
-
-    if (params.m_fillType == ALL || params.m_fillType == AREAS) {
-      if (isShiftFill) {
-        FillParameters aux(params);
-        aux.m_styleId    = (params.m_styleId == 0) ? 1 : 0;
-        recomputeSavebox = fill(ras, aux, &tileSaver);
+      // !autoPaintLines will temporary disable autopaint line feature
+      if (plt && hasAutoInks(plt) && autopaintLines) params.m_palette = plt;
+      TRaster32P refRas;
+      if (params.m_fillType == ALL || params.m_fillType == AREAS) {
+          //Get refImg
+          if (refImg) {
+              TRasterImageP ri = (TRasterImageP)refImg;
+              if (ri) {
+                  TRasterP r = ri->getRaster();
+                  if (r) refRas = r;
+              }
+          }
+          recomputeSavebox = fill(ras, params, &tileSaver, refRas);
       }
-      recomputeSavebox = fill(ras, params, &tileSaver);
-    }
-    if (params.m_fillType == ALL || params.m_fillType == LINES) {
-      if (params.m_segment)
-        inkSegment(ras, params.m_p, params.m_styleId, 2.51, true, &tileSaver);
-      else if (!params.m_segment)
-        inkFill(ras, params.m_p, params.m_styleId, 2, &tileSaver);
-    }
+      if (params.m_fillType == ALL || params.m_fillType == LINES) {
+          if (params.m_segment)
+              inkSegment(ras, params.m_p, params.m_styleId, 2.51, true, &tileSaver);
+          else if (!params.m_segment)
+              inkFill(ras, params.m_p, params.m_styleId, 2, &tileSaver);
+      }
 
     if (tileSaver.getTileSet()->getTileCount() != 0) {
       static int count = 0;
