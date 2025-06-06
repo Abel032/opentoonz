@@ -52,6 +52,7 @@ enum PreferencesItemId {
   // Loading
   importPolicy,
   renamePolicy,
+  convertPolicy,
   autoExposeEnabled,
   subsceneFolderEnabled,
   removeSceneNumberFromLoadedLevelName,
@@ -123,6 +124,7 @@ enum PreferencesItemId {
   xsheetLayoutPreference,
   xsheetStep,
   xsheetAutopanEnabled,
+  alwaysDragFrameCell,
   DragCellsBehaviour,
   deleteCommandBehavior,
   pasteCellsBehavior,
