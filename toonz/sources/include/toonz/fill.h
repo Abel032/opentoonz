@@ -29,7 +29,7 @@ public:
   int m_maxFillDepth;
   bool m_shiftFill;
   TPoint m_p;
-  TPalette *m_palette;//Whether to fill autoPaint Ink
+  TPalette *m_palette;  // Whether to fill autoPaint Ink
   bool m_prevailing;
   bool m_extendFill;
 
@@ -56,7 +56,7 @@ public:
       , m_shiftFill(params.m_shiftFill)
       , m_palette(params.m_palette)
       , m_prevailing(params.m_prevailing)
-      , m_extendFill(params.m_extendFill){}
+      , m_extendFill(params.m_extendFill) {}
 };
 
 //=============================================================================
@@ -69,7 +69,7 @@ class TTileSaverFullColor;
 
 // returns true if the savebox is changed typically, if you fill the bg)
 DVAPI bool fill(const TRasterCM32P &r, const FillParameters &params,
-                TTileSaverCM32 *saver  = 0,
+                TTileSaverCM32 *saver = 0,
                 const TRaster32P &ref = TRaster32P());
 
 DVAPI void fill(const TRaster32P &ras, const TRaster32P &ref,
@@ -91,6 +91,9 @@ void DVAPI fillautoInks(TRasterCM32P &r, TRect &rect,
 void DVAPI fullColorFill(const TRaster32P &ras, const FillParameters &params,
                          TTileSaverFullColor *saver = 0);
 
+void DVAPI fillHoles(const TRasterCM32P &ras, int size,
+                     TTileSaverCM32 *saver = 0);
+
 //=============================================================================
 //! The class AreaFiller allows to fill a raster area, delimited by rect or
 //! spline.
@@ -108,7 +111,7 @@ class DVAPI AreaFiller {
   Pixel *m_pixels;
   int m_wrap;
   int m_color;
-  
+
 public:
   AreaFiller(const TRasterCM32P &ras, const TImageP &ref = TImageP());
   ~AreaFiller();
