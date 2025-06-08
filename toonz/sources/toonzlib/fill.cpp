@@ -236,7 +236,7 @@ void fillRow(const TRasterCM32P &r, const TPoint &p, int &xa, int &xb,
     }
 
     // Make sure the up and down ref Ink Pixels can be painted
-    if (refImagePut) {
+    if (refImagePut && p.y > 0 && p.y < r->getLy() - 1) {
       pix = line + xa;
       for (n = 0; n < xb - xa + 1; n++, pix++) {
         if (pix->isPurePaint()) {
