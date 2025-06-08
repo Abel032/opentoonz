@@ -726,7 +726,7 @@ bool scanTransparentRegion(TRasterCM32P ras, int x, int y,
 
   TPixelCM32 *pix = ras->pixels(y) + x;
   if (pix->getPaint() != 0 || pix->isPureInk()) return true;
-  if (points.size()+1 > maxSize) return false;
+  if (points.size() + 1 > maxSize) return false;
 
   visited[y * lx + x] = true;
   points.push_back(TPoint(x, y));
@@ -1267,7 +1267,8 @@ void fullColorFill(const TRaster32P &ras, const FillParameters &params,
   }
 }
 
-void fillHoles(const TRasterCM32P &ras, int maxSize, TTileSaverCM32 *saver) {
+void fillHoles(const TRasterCM32P &ras, const int maxSize,
+               TTileSaverCM32 *saver) {
   int lx        = ras->getLx();
   int ly        = ras->getLy();
   bool *visited = new bool[lx * ly]{false};
@@ -1291,12 +1292,11 @@ void fillHoles(const TRasterCM32P &ras, int maxSize, TTileSaverCM32 *saver) {
           if (paint)
             for (const TPoint &p : points) {
               if (saver) saver->save(p);
-              if(paint==1){
-                  ras->pixels(p.y)[p.x].setInk(paint);
-                  ras->pixels(p.y)[p.x].setTone(0);
-              }
-              else
-              ras->pixels(p.y)[p.x].setPaint(paint);
+              if (paint == 1) {
+                ras->pixels(p.y)[p.x].setInk(paint);
+                ras->pixels(p.y)[p.x].setTone(0);
+              } else
+                ras->pixels(p.y)[p.x].setPaint(paint);
             }
         }
       }

@@ -1,22 +1,23 @@
 #include "fillholespopup.h"
+#include "toonz/fill.h"
 
 #include "toonzqt/dvdialog.h"
 #include "toonzqt/intfield.h"
 #include "toonzqt/menubarcommand.h"
 #include "menubarcommandids.h"
-#include "toonz/fill.h"
 #include "selectionutils.h"
 #include "toonz/txshlevel.h"
 #include "toonz/txshsimplelevel.h"
 #include "toonz/txshleveltypes.h"
 #include "ttoonzimage.h"
-#include <QPushButton>
-#include <QProgressBar>
 #include "tools/toolutils.h"
 #include "tundo.h"
 #include "toonz/ttileset.h"
 #include "toonz/ttilesaver.h"
 #include "toonz/txsheethandle.h"
+
+#include <QPushButton>
+#include <QProgressBar>
 
 using namespace DVGui;
 using namespace ToolUtils;
@@ -112,4 +113,4 @@ void FillHolesDialog::apply() {
   Dialog::accept();
 }
 
-OpenPopupCommandHandler<FillHolesDialog> openBinarizePopup(MI_FillHoles);
+OpenPopupCommandHandler<FillHolesDialog> fillholesPopup(MI_FillHoles);
