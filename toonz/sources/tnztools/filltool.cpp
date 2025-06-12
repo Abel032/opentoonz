@@ -1603,7 +1603,7 @@ void AreaFillTool::leftButtonUp(const TPointD &pos, const TMouseEvent &e) {
         m_firstRect = m_selectingRect;
         m_currCell =
             std::pair<int, int>(app->getCurrentColumn()->getColumnIndex(),
-                app->getCurrentFrame()->getFrame());
+                                app->getCurrentFrame()->getFrame());
       }
     } else {  // Process current Frame
       std::string imgId = m_level->getImageId(m_parent->getCurrentFid(), 0);
@@ -1640,7 +1640,7 @@ void AreaFillTool::leftButtonUp(const TPointD &pos, const TMouseEvent &e) {
     m_track.clear();
 
     if (m_frameRange)  // stroke multi
-{
+    {
       stroke->addRef();
       if (m_firstFrameSelected) {
         MultiAreaFiller filler(refImgTable, m_firstStroke, stroke,
@@ -2137,10 +2137,12 @@ void FillTool::leftButtonDown(const TPointD &pos, const TMouseEvent &e) {
   TTool::Application *app = TTool::getApplication();
   if (!app) return;
   FillParameters params = getFillParameters();
-  if (m_onion.getValue()) {
-    m_onionStyleId = pickOnionColor(pos);
-    if (m_onionStyleId > 0) app->setCurrentLevelStyleIndex(m_onionStyleId);
-    return;
+  if (m_onion.getValue() &&
+      app->getCurrentOnionSkin()->getOnionSkinMask().isEnabled() &&
+      !app->getCurrentOnionSkin()->getOnionSkinMask().isEmpty()) {
+      m_onionStyleId = pickOnionColor(pos);
+      if (m_onionStyleId > 0) app->setCurrentLevelStyleIndex(m_onionStyleId);
+      return;
   }
   buildFillInfo(params);
   if (!m_frameRange.getValue()) {
@@ -2261,6 +2263,7 @@ void FillTool::leftButtonUp(const TPointD &pos, const TMouseEvent &e) {
               m_refImgTable[m_level->getImageId(getCurrentFid(), false)], pos,
               params, e.isShiftPressed(), m_level.getPointer(), getCurrentFid(),
               m_autopaintLines.getValue());
+    m_onionStyleId = 0;
     invalidate();
   }
 }
