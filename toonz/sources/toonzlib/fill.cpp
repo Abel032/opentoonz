@@ -842,6 +842,8 @@ bool fill(const TRasterCM32P &r, const FillParameters &params,
     if (params.m_shiftFill) {
       FillParameters tmp = FillParameters(params);
       tmp.m_styleId      = 0;
+      tmp.m_shiftFill    = false;
+      tmp.m_minFillDepth = params.m_maxFillDepth;
       fill(r, tmp, saver, Ref);
       paintAtClickedPos = pix0->getPaint();
     } else
