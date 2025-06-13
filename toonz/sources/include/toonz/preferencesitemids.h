@@ -117,6 +117,7 @@ enum PreferencesItemId {
   cursorOutlineEnabled,
   levelBasedToolsDisplay,
   useCtrlAltToResizeBrush,
+  useStrokeEndCursor,
   tempToolSwitchTimer,
 
   //----------

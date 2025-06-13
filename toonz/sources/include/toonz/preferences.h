@@ -348,6 +348,9 @@ public:
   bool isCursorOutlineEnabled() const {
     return getBoolValue(cursorOutlineEnabled);
   }
+  bool isUseStrokeEndCursor() const {
+      return getBoolValue(useStrokeEndCursor);
+  }
   int getLevelBasedToolsDisplay() const {
     return getIntValue(levelBasedToolsDisplay);
   }
