@@ -5,6 +5,9 @@
 #include "toonz/rasterbrush.h"
 #include "trop.h"
 
+#include <stack>
+#include <algorithm>
+
 RasterStrokeGenerator::RasterStrokeGenerator(const TRasterCM32P &raster,
                                              Tasks task, ColorType colorType,
                                              int styleId, const TThickPoint &p,
@@ -188,6 +191,115 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
   TRasterCM32P rOut = out->extract(box);
   TRect box2        = box - p;
   TRasterCM32P rIn  = in->extract(box2);
+  if (m_task == PAINTBRUSH && m_colorType == PAINT) {
+    TPoint center = in->getCenter();
+    int lx        = rOut->getLx();
+    int ly        = rOut->getLy();
+    std::stack<TPoint> stack;
+    stack.push(center);
+    std::vector<std::vector<bool>> visited(ly, std::vector<bool>(lx, false));
+    int minTone = 254, maxTone = 1;
+    {
+      int x = center.x, y = center.y;
+      int tone = 255, oldTone = 255;
+      for (int dx = 0;; dx++) {
+        int px = x + dx;
+        if (!box2.contains(TPoint(px, y))) break;
+        TPixelCM32 *pix = rOut->pixels(y) + px;
+        tone            = pix->getTone();
+        if (tone < oldTone) {
+          oldTone = tone;
+          if (tone > maxTone) maxTone = tone;
+          if (tone < minTone) minTone = tone;
+        } else
+          break;
+      }
+      tone    = 255;
+      oldTone = 255;
+      for (int dx = -1;; dx--) {
+        int px = x + dx;
+        if (!box2.contains(TPoint(px, y))) break;
+        TPixelCM32 *pix = rOut->pixels(y) + px;
+        tone            = pix->getTone();
+        if (tone <= oldTone) {
+          oldTone = tone;
+          if (tone > maxTone) maxTone = tone;
+          if (tone < minTone) minTone = tone;
+        } else
+          break;
+      }
+    }
+    minTone = (minTone + maxTone) / 2 * 0.8;
+    auto isBoundary = [&](int x, int y) {
+      if (!box2.contains(TPoint(x, y))) return true;
+      TPixelCM32 *pix  = rOut->pixels(y) + x;
+      int tone         = pix->getTone();
+      int paintIdx     = pix->getPaint();
+      int toPaint      = (in->pixels(y) + x)->getInk();
+      bool changePaint = (!m_selective && !m_modifierLockAlpha) ||
+                         (m_selective && toPaint != 0) ||
+                         (m_modifierLockAlpha && paintIdx != 0);
+      return tone <= minTone || !changePaint;
+    };
+
+    while (!stack.empty()) {
+      TPoint p = stack.top();
+      stack.pop();
+      int x = p.x, y = p.y;
+      if (!box2.contains(TPoint(x, y))) continue;
+      minTone  = minTone > 50 ? minTone - 5 : 50;
+      int left = x;
+      while (left >= 0 && !isBoundary(left, y) && !visited[y][left]) {
+        --left;
+      }
+      ++left;
+
+      int right = x;
+      while (right < lx && !isBoundary(right, y) && !visited[y][right]) {
+        ++right;
+      }
+      --right;
+
+      for (int i = left; i <= right; ++i) {
+        if (visited[y][i]) continue;
+        visited[y][i] = true;
+
+        TPixelCM32 *inPix  = rIn->pixels(y) + i;
+        TPixelCM32 *outPix = rOut->pixels(y) + i;
+
+        if (!inPix->isPureInk()) continue;
+
+        int paintIdx     = outPix->getPaint();
+        bool changePaint = (!m_selective && !m_modifierLockAlpha) ||
+                           (m_selective && paintIdx == 0) ||
+                           (m_modifierLockAlpha && paintIdx != 0);
+
+        if (changePaint)
+          *outPix =
+              TPixelCM32(outPix->getInk(), inPix->getInk(), outPix->getTone());
+      }
+
+      for (int dy = -1; dy <= 1; dy += 2) {
+        int ny = y + dy;
+        if (ny < 0 || ny >= ly) continue;
+
+        bool canProceed = true;
+        for (int i = left; i <= right; ++i) {
+          if (visited[ny][i]) {
+            canProceed = false;
+            break;
+          }
+        }
+
+        if (!canProceed) continue;
+
+        for (int i = left; i <= right; ++i) {
+          if (!visited[ny][i]) stack.push(TPoint(i, ny));
+        }
+      }
+    }
+  }
+
   for (int y = 0; y < rOut->getLy(); y++) {
     /*--Finger Tool Boundary Conditions --*/
     if (m_task == FINGER && (y == 0 || y == rOut->getLy() - 1)) continue;
@@ -258,8 +370,7 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
                 std::max(outPix->getTone(), 255 - inPix->getTone()));
           }
         }
-      } 
-      else if (m_task == PAINTBRUSH) {
+      } else if (m_task == PAINTBRUSH) {
         if (!inPix->isPureInk()) continue;
         int paintIdx     = outPix->getPaint();
         bool changePaint = (!m_selective && !m_modifierLockAlpha) ||
@@ -268,23 +379,22 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
         if (m_colorType == INK)
           *outPix = TPixelCM32(inPix->getInk(), outPix->getPaint(),
                                outPix->getTone());
-        if (m_colorType == PAINT)
+        /*if (m_colorType == PAINT)
           if (changePaint)
             *outPix = TPixelCM32(outPix->getInk(), inPix->getInk(),
-                                 outPix->getTone());
+                                 outPix->getTone());*/
         if (m_colorType == INKNPAINT)
           *outPix =
               TPixelCM32(inPix->getInk(),
                          changePaint ? inPix->getInk() : outPix->getPaint(),
                          outPix->getTone());
       }
-
       /*-- Finger tool --*/
       else if (m_task == FINGER) {
         /*-- Boundary Conditions --*/
         if (outPix == rOut->pixels(y) || outPix == outEnd - 1) continue;
         if (m_selective) {
-            if (outPix->getPaint() != 0) continue;
+          if (outPix->getPaint() != 0) continue;
         }
         int inStyle = inPix->getInk();
         if (inStyle == 0) continue;
@@ -305,7 +415,8 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
             /*-- Count up the items that have darker lines (lower Tone) than the
              * current pixel, or same paint as current pixel. --*/
             if (neighbourPixels[p]->getTone() < tone ||
-                (m_colorType == PAINT && neighbourPixels[p]->getPaint() == inStyle)) {
+                (m_colorType == PAINT &&
+                 neighbourPixels[p]->getPaint() == inStyle)) {
               count++;
               if (m_colorType == INK && neighbourPixels[p]->getTone() < minTone)
                 minTone = neighbourPixels[p]->getTone();
@@ -317,7 +428,7 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
           if (count <= 2) continue;
 
           if (m_colorType == INK)
-          *outPix = TPixelCM32(inStyle, outPix->getPaint(), minTone);
+            *outPix = TPixelCM32(inStyle, outPix->getPaint(), minTone);
           else if (m_colorType == PAINT)
             *outPix = TPixelCM32(outPix->getInk(), inStyle, outPix->getTone());
         }
@@ -345,8 +456,8 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
           /*---  If 3 or more surrounding pixels are thinner, replace with the
            * maximum Tone ---*/
           if (count <= 2) continue;
-            *outPix = TPixelCM32((maxTone == 255) ? 0 : inStyle,
-                                 outPix->getPaint(), maxTone);
+          *outPix = TPixelCM32((maxTone == 255) ? 0 : inStyle,
+                               outPix->getPaint(), maxTone);
         }
       }
     }
