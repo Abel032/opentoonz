@@ -229,7 +229,7 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
           break;
       }
     }
-    minTone = (minTone + maxTone) / 2 * 0.8;
+    minTone         = (minTone + maxTone) / 2 * 0.8;
     auto isBoundary = [&](int x, int y) {
       if (!box2.contains(TPoint(x, y))) return true;
       TPixelCM32 *pix  = rOut->pixels(y) + x;
@@ -239,7 +239,7 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
       bool changePaint = (!m_selective && !m_modifierLockAlpha) ||
                          (m_selective && toPaint != 0) ||
                          (m_modifierLockAlpha && paintIdx != 0);
-      return tone <= minTone || !changePaint;
+      return (!m_selective && !toPaint) || tone <= minTone || !changePaint;
     };
 
     while (!stack.empty()) {
