@@ -340,7 +340,7 @@ PaintBrushTool::PaintBrushTool()
     , m_workingFrameId(TFrameId())
     , m_modifierLockAlpha("Lock Alpha", false)
     , m_pick("Pick", false) {
-  // m_toolSize.setNonLinearSlider();
+  m_toolSize.setNonLinearSlider();
 
   m_colorType.addValue(LINES);
   m_colorType.addValue(AREAS);
