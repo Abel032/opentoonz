@@ -13,6 +13,7 @@
 #define DVVAR DV_IMPORT_VAR
 #endif
 
+
 #include <set>
 #include "ttilesaver.h"
 #include "timage.h"
@@ -22,6 +23,10 @@
 #include "traster.h"
 #include "trastercm.h"
 #include "tpalette.h"
+
+#include "preferences.h"
+#define DEF_REGION_WITH_PAINT                                                  \
+  Preferences::instance()->getBoolValue(PreferencesItemId::DefRegionWithPaint)
 
 class TPalette;
 
