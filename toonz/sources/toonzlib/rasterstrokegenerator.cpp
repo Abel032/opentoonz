@@ -193,77 +193,56 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
   TRasterCM32P rIn  = in->extract(box2);
   TRect box3        = rOut->getBounds();
   if (m_task == PAINTBRUSH && m_colorType == PAINT) {
-    TPoint center = rOut->getCenter();
-    int lx        = rOut->getLx();
-    int ly        = rOut->getLy();
+    TPoint center = in->getCenter() - p;
+    if (!box3.contains(center)) center = rIn->getCenter();
+    int lx = rOut->getLx();
+    int ly = rOut->getLy();
     std::stack<TPoint> stack;
     stack.push(center);
-    std::vector<std::vector<bool>> visited(ly, std::vector<bool>(lx, false));
-    int minTone = 254, maxTone = 1;
-    {
-      int x = center.x, y = center.y;
-      int tone = 255, oldTone = 255;
-      for (int dx = 0;; dx++) {
-        int px = x + dx;
-        if (!box3.contains(TPoint(px, y))) break;
-        TPixelCM32 *pix = rOut->pixels(y) + px;
-        tone            = pix->getTone();
-        if (tone < oldTone) {
-          oldTone = tone;
-          if (tone > maxTone) maxTone = tone;
-          if (tone < minTone) minTone = tone;
-        } else
-          break;
-      }
-      tone    = 255;
-      oldTone = 255;
-      for (int dx = -1;; dx--) {
-        int px = x + dx;
-        if (!box3.contains(TPoint(px, y))) break;
-        TPixelCM32 *pix = rOut->pixels(y) + px;
-        tone            = pix->getTone();
-        if (tone <= oldTone) {
-          oldTone = tone;
-          if (tone > maxTone) maxTone = tone;
-          if (tone < minTone) minTone = tone;
-        } else
-          break;
-      }
-    }
-    minTone         = (minTone + maxTone) / 2 * 0.8;
+    std::unique_ptr<bool[]> visited(new bool[ly * lx]());
     auto isBoundary = [&](int x, int y) {
       if (!box3.contains(TPoint(x, y))) return true;
+
+      int toPaint = (rIn->pixels(y) + x)->getInk();
+      if (!m_selective && !toPaint) return true;
+
       TPixelCM32 *pix  = rOut->pixels(y) + x;
-      int tone         = pix->getTone();
       int paintIdx     = pix->getPaint();
-      int toPaint      = (rIn->pixels(y) + x)->getInk();
       bool changePaint = (!m_selective && !m_modifierLockAlpha) ||
                          (m_selective && toPaint != 0) ||
                          (m_modifierLockAlpha && paintIdx != 0);
-      return (!m_selective && !toPaint) || tone <= minTone || !changePaint;
+      return !changePaint;
     };
 
     while (!stack.empty()) {
-      TPoint p = stack.top();
+      bool visitedLine = false;
+      TPoint p         = stack.top();
       stack.pop();
       int x = p.x, y = p.y;
-      if (!box3.contains(TPoint(x, y))) continue;
-      minTone  = minTone > 50 ? minTone - 5 : 50;
-      int left = x;
-      while (left >= 0 && !isBoundary(left, y) && !visited[y][left]) {
+      TPixelCM32 *x0 = rOut->pixels(y);
+      int tone;
+      int left = x, right = x;
+      int oldTone = (x0 + left)->getTone();
+      while (left >= 0 && !isBoundary(left, y) && !visited[y * lx + left]) {
+        tone = (x0 + left)->getTone();
+        if (tone > oldTone) break;
         --left;
+        oldTone = tone;
       }
       ++left;
 
-      int right = x;
-      while (right < lx && !isBoundary(right, y) && !visited[y][right]) {
+      oldTone = (x0 + right)->getTone();
+      while (right < lx && !isBoundary(right, y) && !visited[y * lx + right]) {
+        tone = (x0 + right)->getTone();
+        if (tone > oldTone) break;
         ++right;
+        oldTone = tone;
       }
       --right;
 
       for (int i = left; i <= right; ++i) {
-        if (visited[y][i]) continue;
-        visited[y][i] = true;
+        if (visited[y * lx + i]) continue;
+        visited[y * lx + i] = true;
 
         TPixelCM32 *inPix  = rIn->pixels(y) + i;
         TPixelCM32 *outPix = rOut->pixels(y) + i;
@@ -284,18 +263,14 @@ void RasterStrokeGenerator::placeOver(const TRasterCM32P &out,
         int ny = y + dy;
         if (ny < 0 || ny >= ly) continue;
 
-        bool canProceed = true;
         for (int i = left; i <= right; ++i) {
-          if (visited[ny][i]) {
-            canProceed = false;
-            break;
-          }
-        }
+          TPixelCM32 *outPix = rOut->pixels(ny) + i;
+          TPixelCM32 *oldPix = rOut->pixels(y) + i;
+          tone               = outPix->getTone();
+          oldTone            = oldPix->getTone();
 
-        if (!canProceed) continue;
-
-        for (int i = left; i <= right; ++i) {
-          if (!visited[ny][i]) stack.push(TPoint(i, ny));
+          if (tone <= oldTone && !visited[ny * lx + i])
+            stack.push(TPoint(i, ny));
         }
       }
     }
