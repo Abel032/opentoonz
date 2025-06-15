@@ -135,7 +135,7 @@ void fillRow(const TRasterCM32P &r, const TPoint &p, int &xa, int &xb,
     }
     oldtone = tone;
   }
-  if (tone == 0) {
+  if (prevailing && tone == 0) {
     tmp_limit = pix + 10;  // edge stop fill == 10 per default
     if (limit > tmp_limit) limit = tmp_limit;
     int preVailingInk,
@@ -143,13 +143,11 @@ void fillRow(const TRasterCM32P &r, const TPoint &p, int &xa, int &xb,
     for (; pix <= limit; pix++) {
       if (pix->getPaint() == paint) break;
       if (pix->getTone() != 0) break;
-      if (prevailing) {
         preVailingInk = pix->getInk();
         if (oldPrevailingInk > 0 && preVailingInk != oldPrevailingInk) break;
         oldPrevailingInk = preVailingInk;
       }
     }
-  }
 
   xb = p.x + pix - pix0 - 1;
 
@@ -192,7 +190,7 @@ void fillRow(const TRasterCM32P &r, const TPoint &p, int &xa, int &xb,
     }
     oldtone = tone;
   }
-  if (tone == 0) {
+  if (prevailing && tone == 0) {
     tmp_limit = pix - 10;
     if (limit < tmp_limit)
       limit = tmp_limit;  // avoid prevailing different Ink styles
@@ -200,13 +198,11 @@ void fillRow(const TRasterCM32P &r, const TPoint &p, int &xa, int &xb,
     for (; pix >= limit; pix--) {
       if (pix->getPaint() == paint) break;
       if (pix->getTone() != 0) break;
-      if (prevailing) {
         preVailingInk = pix->getInk();
         if (oldPrevailingInk > 0 && preVailingInk != oldPrevailingInk) break;
         oldPrevailingInk = preVailingInk;
       }
     }
-  }
 
   xa = p.x + pix - pix0 + 1;
 
