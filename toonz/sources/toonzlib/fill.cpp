@@ -382,8 +382,8 @@ void extendInk2InkFill(const TRasterCM32P &r, const TPoint &p, bool right,
         areaClosed = true;
     if (areaClosed) {
         for (const extendSeed& s : seeds) extendAndFill(s);
-        seeds.clear();
-        areaClosed = false;
+      seeds.clear();
+      areaClosed = false;
     }
     yy += dy;
     if (yy < 0 || yy >= r->getLy()) break;
@@ -766,7 +766,6 @@ bool scanTransparentRegion(TRasterCM32P ras, int x, int y,
              scanTransparentRegion(ras, x, y + 1, points, visited, maxSize) &&
              scanTransparentRegion(ras, x, y - 1, points, visited, maxSize);
   ret = ret && points.size() <= maxSize;
-  if (!ret) visited[y * lx + x] = false;
   return ret;
 }
 
@@ -1346,7 +1345,10 @@ void fillHoles(const TRasterCM32P &ras, const int maxSize,
             } else
               ras->pixels(p.y)[p.x].setPaint(style);
           }
-        }
+        } else
+          for (const TPoint &p : points) {
+            visited[p.y * lx + p.x] = false;
+          }
       }
       emptyCount = 0;
     }
