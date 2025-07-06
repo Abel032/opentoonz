@@ -119,6 +119,7 @@ enum PreferencesItemId {
   levelBasedToolsDisplay,
   useCtrlAltToResizeBrush,
   useStrokeEndCursor,
+  clickTwiceToCreateArcs,
   tempToolSwitchTimer,
 
   //----------
