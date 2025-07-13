@@ -328,10 +328,7 @@ void getRowInk2Ink(const TRasterCM32P &r, const TPoint &p, extendSeed &seed,
       ++i;
     else
       ++j;
-    if (i > length) {
-      length -= 2;
-      break;
-    }
+    if (i > length) break;
     if (j > max) break;
   }
 
@@ -339,7 +336,10 @@ void getRowInk2Ink(const TRasterCM32P &r, const TPoint &p, extendSeed &seed,
   seed.xa = seed.xc, seed.xb = seed.xd;
   (right ? seed.xb : seed.xa) = pix - r->pixels(p.y);
 
-  length = (int)((seed.xb - seed.xa) / 2) + 2;
+  if (i > length)
+      length -= 2;
+  else 
+      length = (int)((seed.xb - seed.xa)) + 2;
 }
 
 //-----------------------------------------------------------------------------
@@ -377,6 +377,7 @@ void extendInk2InkFill(const TRasterCM32P &r, const TPoint &p, bool right,
     extendSeed seed;
     seed.y = yy;
     getRowInk2Ink(r, TPoint(xx, yy), seed, right, paint, maxLength, saver);
+    if (seed.xd - seed.xc + 1 > maxLength) break;
     seeds.push_back(seed);
     if (isLineClosed(seed))
         areaClosed = true;
