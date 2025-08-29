@@ -338,6 +338,7 @@ void XDTSImportPopup::updateSuggestions(const QString samplePath) {
         }
         for (TFilePath path : subPathSet) {
           if (path.getName() == levelName.toStdString()) {
+            suggested = true;
             TFilePath codedPath = m_scene->codeFilePath(path);
             fileField->setPath(codedPath.getQString());
             if (!m_pathSuggestedLevels.contains(levelName))
