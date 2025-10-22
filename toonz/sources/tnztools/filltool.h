@@ -123,6 +123,7 @@ class FillTool final : public QObject, public TTool {
   RefImgTable m_refImgTable;  // imageId
 
   bool m_isAltPressed = false;
+  bool m_isCtrlPressed = false;
 
 public:
   FillTool(int targetType);

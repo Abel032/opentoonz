@@ -2221,6 +2221,11 @@ void FillTool::leftButtonDown(const TPointD &pos, const TMouseEvent &e) {
   if (m_isAltPressed)
     Preferences::instance()->setValue(PreferencesItemId::DefRegionWithPaint,
                                       !DEF_REGION_WITH_PAINT);
+  m_isCtrlPressed = e.isCtrlPressed();
+  if (m_isCtrlPressed) {
+    m_autopaintLines.setValue(!m_autopaintLines.getValue());
+    onPropertyChanged(m_autopaintLines.getName(), false);
+  }
 
   m_clickPoint = pos;
   // Area mode
@@ -2376,6 +2381,10 @@ void FillTool::leftButtonUp(const TPointD &pos, const TMouseEvent &e) {
   if (m_isAltPressed)
     Preferences::instance()->setValue(PreferencesItemId::DefRegionWithPaint,
                                       (!DEF_REGION_WITH_PAINT));
+  if (m_isCtrlPressed) {
+      m_autopaintLines.setValue(!m_autopaintLines.getValue());
+      onPropertyChanged(m_autopaintLines.getName(), false);
+  }
 }
 
 //-----------------------------------------------------------------------------
