@@ -361,7 +361,7 @@ OpenFloatingPanel openSchematicSceneViewerCommand(MI_OpenSchematic, "Schematic",
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-/*-- ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆã‚­ãƒ¼ã§PreviewFxã‚’å®Ÿè¡Œã™ã‚‹ãŸã‚ã®ã‚³ãƒãƒ³ãƒ‰ --*/
+/*-- ¥·¥ç©`¥È¥«¥Ã¥È¥­©`¤ÇPreviewFx¤òŒgĞĞ¤¹¤ë¤¿¤á¤Î¥³¥Ş¥ó¥É --*/
 class FxPreviewCommand {
 public:
   FxPreviewCommand() {
@@ -375,8 +375,8 @@ public:
       return;
     }
     /*--
-     TLevelColumnFx,TZeraryColumnFx,TXsheetFx,é€šå¸¸ã®Fxã§ä½¿ç”¨å¯èƒ½
-     TPaletteColumnFx, TOutputFxã§ã¯Previewã¯ä½¿ç”¨ä¸å¯
+     TLevelColumnFx,TZeraryColumnFx,TXsheetFx,Í¨³£¤ÎFx¤ÇÊ¹ÓÃ¿ÉÄÜ
+     TPaletteColumnFx, TOutputFx¤Ç¤ÏPreview¤ÏÊ¹ÓÃ²»¿É
      --*/
     TPaletteColumnFx *pfx = dynamic_cast<TPaletteColumnFx *>(currentFx);
     TOutputFx *ofx        = dynamic_cast<TOutputFx *>(currentFx);
@@ -1131,19 +1131,19 @@ void FlipbookPanel::initializeTitleBar(TPanelTitleBar *titleBar) {
   int iconWidth = 20;
 
   // safe area button
-  TPanelTitleBarButtonForSafeArea *safeAreaButton =
-      new TPanelTitleBarButtonForSafeArea(titleBar, "safearea");
-  safeAreaButton->setToolTip(tr("Safe Area (Right Click to Select)"));
+  TPanelTitleBarButtonForFrames *safeAreaButton =
+      new TPanelTitleBarButtonForFrames(titleBar, "frames");
+  safeAreaButton->setToolTip(tr("Frames (Right Click to Select)"));
   titleBar->add(QPoint(x, 0), safeAreaButton);
   ret = ret && connect(safeAreaButton, SIGNAL(toggled(bool)),
-                       CommandManager::instance()->getAction(MI_SafeArea),
+                       CommandManager::instance()->getAction(MI_Frames),
                        SLOT(trigger()));
-  ret = ret && connect(CommandManager::instance()->getAction(MI_SafeArea),
+  ret = ret && connect(CommandManager::instance()->getAction(MI_Frames),
                        SIGNAL(triggered(bool)), safeAreaButton,
                        SLOT(setPressed(bool)));
   // sync the initial state
   safeAreaButton->setPressed(
-      CommandManager::instance()->getAction(MI_SafeArea)->isChecked());
+      CommandManager::instance()->getAction(MI_Frames)->isChecked());
 
   x += 28 + iconWidth;
   // minimize button
