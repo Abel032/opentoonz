@@ -81,6 +81,7 @@ TEnv::IntVar FillSegment("InknpaintFillSegment", 0);
 TEnv::IntVar FillCloseGap("InknpaintFillCloseGap", 0);
 TEnv::IntVar FillReferFill("InknpaintFillReferFill", 0);
 TEnv::IntVar FillRange("InknpaintFillRange", 0);
+TEnv::IntVar FillExtend("InknpaintFillExtend", 0);
 
 //-----------------------------------------------------------------------------
 
@@ -860,6 +861,7 @@ void fillAreaWithUndo(const TImageP &img, const TRaster32P &ref,
     TRect rasBounds    = ras->getBounds();
     TRect rasStrokeBox = ToonzImageUtils::convertWorldToRaster(selArea, ti);
     TRect rasFillArea  = rasStrokeBox * rasBounds;
+    if (rasFillArea.isEmpty()) return;
 
     /*-- tileSetでFill範囲のRectをUndoに格納しておく --*/
     TTileSetCM32 *rasTileSet = new TTileSetCM32(ras->getSize());
@@ -885,7 +887,7 @@ void fillAreaWithUndo(const TImageP &img, const TRaster32P &ref,
     TRect auxStrokeBox = rasStrokeBox - offs;
     TRect auxBounds    = ras->getBounds();
     TRect auxFillArea  = auxStrokeBox * auxBounds;
-    if (auxBounds.isEmpty() || rasFillArea.isEmpty()) return;
+    if (auxFillArea.isEmpty()) return;
 
     AreaFiller filler(raux, ref, plt);
     if (!stroke) {
@@ -1998,8 +2000,9 @@ FillTool::FillTool(int targetType)
     , m_gapCloseDistance("Gap Close Distance:", 0, 100, 30)
     , m_firstTime(true)
     , m_autopaintLines("Autopaint Lines", true)
-    , m_referFill("Refer Fill", false) {
-  m_areaFillTool       = new AreaFillTool(this);
+    , m_referFill("Refer Fill", false)
+    , m_extendFill("Extend Fill", true) {
+  m_areaFillTool = new AreaFillTool(this);
   m_normalLineFillTool = new NormalLineFillTool(this);
 
   bind(targetType);
@@ -2028,7 +2031,11 @@ FillTool::FillTool(int targetType)
     m_prop.bind(m_maxGapDistance);
     m_maxGapDistance.setId("MaxGapDistance");
   }
-  if (targetType == TTool::ToonzImage) m_prop.bind(m_autopaintLines);
+  if (targetType == TTool::ToonzImage) {
+    m_prop.bind(m_autopaintLines);
+    m_prop.bind(m_extendFill);
+    m_prop.bind(m_gapCloseDistance);
+  }
   m_emptyOnly.setId("EmptyOnly");
   m_onion.setId("OnionSkin");
   m_frameRange.setId("FrameRange");
@@ -2039,8 +2046,7 @@ FillTool::FillTool(int targetType)
   m_colorType.setId("Mode");
   m_autopaintLines.setId("AutopaintLines");
   m_gapCloseDistance.setId("GapCloseDistance");
-
-  if (targetType == TTool::ToonzImage) m_prop.bind(m_gapCloseDistance);
+  m_extendFill.setId("ExtendFill");
 }
 //-----------------------------------------------------------------------------
 
@@ -2211,6 +2217,7 @@ void FillTool::updateTranslation() {
   m_maxGapDistance.setQStringName(tr("Maximum Gap"));
   m_autopaintLines.setQStringName(tr("Autopaint Lines"));
   m_gapCloseDistance.setQStringName(tr("Gap Close Distance:"));
+  m_extendFill.setQStringName(tr("Extend Fill"));
 }
 
 //-----------------------------------------------------------------------------
@@ -2226,6 +2233,7 @@ FillParameters FillTool::getFillParameters() const {
   // RefFill is not controlled params
   params.m_minFillDepth = (int)m_fillDepth.getValue().first;
   params.m_maxFillDepth = (int)m_fillDepth.getValue().second;
+  params.m_extendFill = m_extendFill.getValue();
   return params;
 }
 
@@ -2457,6 +2465,7 @@ bool FillTool::onPropertyChanged(std::string propertyName, bool addToUndo) {
   else if (propertyName == m_onion.getName()) {
     if (m_onion.getValue()) FillType = ::to_string(m_fillType.getValue());
     FillOnion = (int)(m_onion.getValue());
+    rectPropChangedflag = true;
   }
   // Frame Range
   else if (propertyName == m_frameRange.getName()) {
@@ -2501,8 +2510,13 @@ bool FillTool::onPropertyChanged(std::string propertyName, bool addToUndo) {
     if (ToonzCheck::instance()->getChecks() & ToonzCheck::eAutoclose)
       notifyImageChanged();
   }
-  //
-  else if (!m_frameSwitched && (propertyName == m_maxGapDistance.getName())) {
+  // Extend Fill
+  else if (propertyName == m_extendFill.getName()) {
+    FillExtend = (int)(m_extendFill.getValue());
+  }
+
+  else if (!m_frameSwitched &&
+           (propertyName == m_maxGapDistance.getName())) {
     TXshLevel *xl = TTool::getApplication()->getCurrentLevel()->getLevel();
     m_level       = xl ? xl->getSimpleLevel() : 0;
     if (TVectorImageP vi = getImage(true)) {
@@ -2536,7 +2550,7 @@ bool FillTool::onPropertyChanged(std::string propertyName, bool addToUndo) {
     }
   }
 
-  /*--- fillType, frameRange, selective, colorTypeが変わったとき ---*/
+  /*--- fillType, frameRange, selective, onionSkin, colorTypeが変わったとき ---*/
   if (rectPropChangedflag && m_fillType.getValue() != NORMALFILL) {
     AreaFillTool::Type type;
     if (m_fillType.getValue() == RECTFILL)
@@ -2750,6 +2764,7 @@ void FillTool::onActivate() {
     ToonzCheck::instance()->setAutocloseSettings(
         AutocloseDistance, AutocloseAngle, AutocloseOpacity,
         AutocloseIgnoreAutoPaint);
+    m_extendFill.setValue(FillExtend ? 1 : 0);
     m_firstTime = false;
 
     if (m_fillType.getValue() != NORMALFILL) {
